@@ -2,21 +2,6 @@
 
 A Vue.js web application for retrieving historical course enrollment data from Georgia Tech. This is the frontend component that communicates with an AWS Lambda backend.
 
-## Features
-
-- **Customizable Data Retrieval**: Filter by number of terms, subjects, and course number ranges
-- **Flexible Output Options**: 
-  - Skip summer terms
-  - Export all terms to one file
-  - Group crosslisted courses by room/time
-- **Interactive Results Table**: Sort, paginate, and view enrollment data
-- **CSV Export**: Download data in CSV format matching the original Python tool output
-
-## Prerequisites
-
-- Node.js 18+ and npm
-- Backend API deployed (AWS Lambda)
-
 ## Setup
 
 1. **Install dependencies**
@@ -44,31 +29,6 @@ A Vue.js web application for retrieving historical course enrollment data from G
    ```bash
    npm run build
    ```
-
-## Project Structure
-
-```
-client/
-├── src/
-│   ├── assets/           # Static assets (logos, icons)
-│   ├── components/       # Vue components
-│   │   ├── EnrollmentForm.vue    # Main form for query parameters
-│   │   ├── ResultsTable.vue      # Data display with sorting/pagination
-│   │   └── StatusMessage.vue     # Loading/error/success messages
-│   ├── composables/      # Vue composables (shared logic)
-│   │   └── useEnrollmentStore.ts
-│   ├── services/         # API communication
-│   │   └── api.ts
-│   ├── types/            # TypeScript type definitions
-│   │   └── index.ts
-│   ├── App.vue           # Root component
-│   ├── main.ts           # Application entry point
-│   └── style.css         # Global styles
-├── .env.example          # Environment variable template
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
-```
 
 ## API Contract
 
@@ -206,12 +166,9 @@ When `status` is `completed`, the `result` field contains:
 - **Vite** - Fast build tool and dev server
 - **CSS Variables** - Theming with dark mode support
 
-## Georgia Tech Branding
-
-The app uses official Georgia Tech colors:
-- GT Gold: `#B3A369`
-- GT Navy: `#003057`
-
 ## License
 
 MIT
+
+
+Original Python desktop application made by Andrew DiBiasio.
