@@ -1,5 +1,217 @@
-# Vue 3 + TypeScript + Vite
+# Georgia Tech Enrollment Data - Web Application
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A Vue.js web application for retrieving historical course enrollment data from Georgia Tech. This is the frontend component that communicates with an AWS Lambda backend.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Features
+
+- **Customizable Data Retrieval**: Filter by number of terms, subjects, and course number ranges
+- **Flexible Output Options**: 
+  - Skip summer terms
+  - Export all terms to one file
+  - Group crosslisted courses by room/time
+- **Interactive Results Table**: Sort, paginate, and view enrollment data
+- **CSV Export**: Download data in CSV format matching the original Python tool output
+
+## Prerequisites
+
+- Node.js 18+ and npm
+- Backend API deployed (AWS Lambda)
+
+## Setup
+
+1. **Install dependencies**
+   ```bash
+   cd client
+   npm install
+   ```
+
+2. **Configure environment**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and set your API Gateway URL:
+   ```
+   VITE_API_URL=https://your-api-gateway-url.amazonaws.com/prod
+   ```
+
+3. **Run development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Build for production**
+   ```bash
+   npm run build
+   ```
+
+## Project Structure
+
+```
+client/
+├── src/
+│   ├── assets/           # Static assets (logos, icons)
+│   ├── components/       # Vue components
+│   │   ├── EnrollmentForm.vue    # Main form for query parameters
+│   │   ├── ResultsTable.vue      # Data display with sorting/pagination
+│   │   └── StatusMessage.vue     # Loading/error/success messages
+│   ├── composables/      # Vue composables (shared logic)
+│   │   └── useEnrollmentStore.ts
+│   ├── services/         # API communication
+│   │   └── api.ts
+│   ├── types/            # TypeScript type definitions
+│   │   └── index.ts
+│   ├── App.vue           # Root component
+│   ├── main.ts           # Application entry point
+│   └── style.css         # Global styles
+├── .env.example          # Environment variable template
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+```
+
+## API Contract
+
+The frontend expects the backend to implement an **async job-based API** since enrollment data retrieval can take several minutes. The flow is:
+
+1. **Submit job** → Get job ID
+2. **Poll for status** → Until completed or failed
+3. **Get results** → From final status response
+
+### POST /enrollment (Submit Job)
+
+**Request Body:**
+```json
+{
+  "num_terms": 1,
+  "subjects": ["CS", "MATH"],
+  "ranges": [[1000, 2999], [4000, 4999]],
+  "skip_summer": false,
+  "one_file": true,
+  "group_data": "all"
+}
+```
+
+**Response (Job Submitted):**
+```json
+{
+  "jobId": "abc123-def456",
+  "status": "pending",
+  "message": "Job submitted successfully"
+}
+```
+
+### GET /enrollment/status/{jobId} (Poll Status)
+
+**Response (Processing):**
+```json
+{
+  "jobId": "abc123-def456",
+  "status": "processing",
+  "progress": 45,
+  "message": "Processing Spring 2025 data..."
+}
+```
+
+**Response (Completed):**
+```json
+{
+  "jobId": "abc123-def456",
+  "status": "completed",
+  "progress": 100,
+  "result": {
+    "success": true,
+    "data": [...],
+    "fileName": "fall_2025_enrollment_data_2025-12-13.csv"
+  }
+}
+```
+
+**Response (Failed):**
+```json
+{
+  "jobId": "abc123-def456",
+  "status": "failed",
+  "message": "Error: Unable to fetch term data"
+}
+```
+
+### Job Status Values
+| Status | Description |
+|--------|-------------|
+| `pending` | Job received, waiting to start |
+| `processing` | Job is running |
+| `completed` | Job finished successfully |
+| `failed` | Job encountered an error |
+
+### Result Data Structure
+
+When `status` is `completed`, the `result` field contains:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "term": "Fall 2025",
+      "subject": "CS",
+      "course": "CS 1301",
+      "crn": "12345",
+      "section": "A",
+      "startTime": "08:25",
+      "endTime": "09:15",
+      "days": "MWF",
+      "building": "College of Computing",
+      "room": "16",
+      "primaryInstructors": "John Doe",
+      "additionalInstructors": "",
+      "enrollmentActual": 45,
+      "enrollmentMaximum": 50,
+      "enrollmentSeatsAvailable": 5,
+      "waitlistCapacity": 10,
+      "waitlistActual": 0,
+      "waitlistSeatsAvailable": 10,
+      "buildingCode": "50",
+      "roomCapacity": 240,
+      "loss": 0.8125
+    }
+  ],
+  "fileName": "fall_2025_enrollment_data_2025-12-13.csv"
+}
+```
+
+## Data Fields
+
+| Field | Description |
+|-------|-------------|
+| Term | Semester and year (e.g., "Fall 2025") |
+| Subject | Course subject code (e.g., "CS") |
+| Course | Full course code (e.g., "CS 1301") |
+| CRN | Course Reference Number |
+| Section | Section identifier |
+| Start Time / End Time | Class meeting times |
+| Days | Meeting days (M, T, W, R, F) |
+| Building / Room | Physical location |
+| Primary Instructor(s) | Main instructor(s) |
+| Enrollment Actual | Current enrollment count |
+| Enrollment Maximum | Maximum allowed enrollment |
+| Seats Available | Remaining seats |
+| Waitlist fields | Waitlist capacity and current count |
+| Room Capacity | Physical room capacity |
+| Loss | Room utilization loss (1 - actual/capacity) |
+
+## Technologies
+
+- **Vue 3** - Progressive JavaScript framework
+- **TypeScript** - Type-safe JavaScript
+- **Vite** - Fast build tool and dev server
+- **CSS Variables** - Theming with dark mode support
+
+## Georgia Tech Branding
+
+The app uses official Georgia Tech colors:
+- GT Gold: `#B3A369`
+- GT Navy: `#003057`
+
+## License
+
+MIT

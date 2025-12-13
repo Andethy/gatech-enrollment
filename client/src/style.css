@@ -1,79 +1,160 @@
+/* Georgia Tech Enrollment Data - Global Styles */
+
+/* CSS Variables */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* Georgia Tech Colors */
+  --color-gt-gold: #B3A369;
+  --color-gt-gold-dark: #9A8A4C;
+  --color-gt-navy: #003057;
+  --color-gt-navy-light: #1A4571;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* Primary Colors */
+  --color-primary: #003057;
+  --color-primary-dark: #00203D;
+  --color-primary-alpha: rgba(0, 48, 87, 0.2);
+  --color-primary-bg: rgba(0, 48, 87, 0.1);
+  --color-primary-border: rgba(0, 48, 87, 0.3);
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  /* Semantic Colors */
+  --color-success: #2E7D32;
+  --color-success-dark: #1B5E20;
+  --color-success-bg: rgba(46, 125, 50, 0.1);
+  --color-success-border: rgba(46, 125, 50, 0.3);
+
+  --color-error: #C62828;
+  --color-error-bg: rgba(198, 40, 40, 0.1);
+  --color-error-border: rgba(198, 40, 40, 0.3);
+
+  --color-info: #1565C0;
+  --color-info-bg: rgba(21, 101, 192, 0.1);
+  --color-info-border: rgba(21, 101, 192, 0.3);
+
+  /* Neutral Colors - Light Mode */
+  --color-background: #ffffff;
+  --color-background-soft: #f8f9fa;
+  --color-background-muted: #e9ecef;
+  --color-text: #212529;
+  --color-text-muted: #6c757d;
+  --color-border: #dee2e6;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #1a1a2e;
+    --color-background-soft: #16213e;
+    --color-background-muted: #0f3460;
+    --color-text: #f8f9fa;
+    --color-text-muted: #adb5bd;
+    --color-border: #3d5a80;
+
+    --color-primary: #B3A369;
+    --color-primary-dark: #9A8A4C;
+    --color-primary-alpha: rgba(179, 163, 105, 0.2);
+    --color-primary-bg: rgba(179, 163, 105, 0.15);
+    --color-primary-border: rgba(179, 163, 105, 0.4);
+
+    --color-success-bg: rgba(46, 125, 50, 0.2);
+    --color-error-bg: rgba(198, 40, 40, 0.2);
+    --color-info-bg: rgba(21, 101, 192, 0.2);
+  }
+}
+
+/* Global Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Base Styles */
+html {
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  line-height: 1.6;
   min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.card {
-  padding: 2em;
+  margin: 0;
 }
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  min-height: 100vh;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--color-primary-dark);
+}
+
+/* Form Elements */
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Utility Classes */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background-soft);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-gt-gold);
+  color: var(--color-gt-navy);
 }
