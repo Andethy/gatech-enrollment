@@ -1,25 +1,26 @@
 // API service for communicating with the Lambda backend
-import type { EnrollmentRequest, EnrollmentResponse, Term } from '../types';
+import type { EnrollmentRequest, EnrollmentResponse, EnrollmentRecord, Term } from '../types';
 
 // Base URL for the API - will be configured based on environment
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://your-api-gateway-url.amazonaws.com/prod';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.enrollment.cs1332.cc';
 
 // Polling configuration
 const POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
 const MAX_POLL_ATTEMPTS = 150; // Max 5 minutes (150 * 2s)
 
 interface JobSubmitResponse {
-  jobId: string;
+  job_id: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   message?: string;
 }
 
 interface JobStatusResponse {
-  jobId: string;
+  job_id: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   progress?: number;
-  message?: string;
-  result?: EnrollmentResponse;
+  csv_data?: string;
+  download_url?: string;
+  error_message?: string;
 }
 
 type ProgressCallback = (progress: number, message: string) => void;
@@ -28,24 +29,24 @@ type ProgressCallback = (progress: number, message: string) => void;
  * Submits an enrollment data request and returns a job ID for polling
  */
 async function submitEnrollmentJob(request: EnrollmentRequest): Promise<JobSubmitResponse> {
-  const response = await fetch(`${API_BASE_URL}/enrollment`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/enrollment/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      num_terms: request.numTerms,
+      nterms: request.numTerms,
       subjects: request.subjects,
       ranges: request.courseRanges.map(r => [r.lower, r.upper]),
-      skip_summer: request.skipSummer,
-      one_file: request.oneFile,
-      group_data: request.groupData,
+      include_summer: !request.skipSummer,
+      save_all: request.groupData === 'all' || request.groupData === 'both',
+      save_grouped: request.groupData === 'grouped' || request.groupData === 'both',
     }),
   });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
   }
 
   return await response.json();
@@ -55,7 +56,7 @@ async function submitEnrollmentJob(request: EnrollmentRequest): Promise<JobSubmi
  * Polls for job status until completion or failure
  */
 async function pollJobStatus(jobId: string): Promise<JobStatusResponse> {
-  const response = await fetch(`${API_BASE_URL}/enrollment/status/${jobId}`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}/status`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -64,7 +65,7 @@ async function pollJobStatus(jobId: string): Promise<JobStatusResponse> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
   }
 
   return await response.json();
@@ -82,12 +83,7 @@ export async function fetchEnrollmentData(
     onProgress?.(0, 'Submitting request...');
     const submitResponse = await submitEnrollmentJob(request);
 
-    // If the response already contains the result (fast path), return it
-    if ('data' in submitResponse && 'success' in submitResponse) {
-      return submitResponse as unknown as EnrollmentResponse;
-    }
-
-    const jobId = submitResponse.jobId;
+    const jobId = submitResponse.job_id;
     if (!jobId) {
       throw new Error('No job ID returned from server');
     }
@@ -102,20 +98,43 @@ export async function fetchEnrollmentData(
 
       const statusResponse = await pollJobStatus(jobId);
 
-      // Update progress
-      const progress = statusResponse.progress ?? Math.min(10 + attempts * 2, 90);
-      onProgress?.(progress, statusResponse.message || `Processing... (${attempts * 2}s elapsed)`);
+      // Update progress based on simplified progress tracking
+      let progress = statusResponse.progress || 0;
+      if (progress === 0) progress = 10; // Show some progress while polling
+      onProgress?.(progress, `Processing... (${attempts * 2}s elapsed)`);
 
       if (statusResponse.status === 'completed') {
         onProgress?.(100, 'Complete!');
-        if (statusResponse.result) {
-          return statusResponse.result;
+        
+        // Handle embedded CSV data or download URL
+        if ('csv_data' in statusResponse && statusResponse.csv_data) {
+          // Return embedded CSV data
+          return {
+            success: true,
+            data: parseCSVToRecords(statusResponse.csv_data),
+            fileName: 'enrollment_data.csv',
+            message: 'Data retrieved successfully'
+          } as EnrollmentResponse;
+        } else if ('download_url' in statusResponse && statusResponse.download_url) {
+          // Download CSV from URL
+          const csvResponse = await fetch(statusResponse.download_url);
+          if (!csvResponse.ok) {
+            throw new Error('Failed to download CSV file');
+          }
+          const csvData = await csvResponse.text();
+          return {
+            success: true,
+            data: parseCSVToRecords(csvData),
+            fileName: 'enrollment_data.csv',
+            message: 'Data downloaded successfully'
+          } as EnrollmentResponse;
         }
-        throw new Error('Job completed but no result returned');
+        
+        throw new Error('Job completed but no data returned');
       }
 
       if (statusResponse.status === 'failed') {
-        throw new Error(statusResponse.message || 'Job failed');
+        throw new Error(statusResponse.error_message || 'Job failed');
       }
     }
 
@@ -140,18 +159,18 @@ export async function fetchEnrollmentDataSync(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
 
-    const response = await fetch(`${API_BASE_URL}/enrollment`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/enrollment/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        num_terms: request.numTerms,
+        nterms: request.numTerms,
         subjects: request.subjects,
         ranges: request.courseRanges.map(r => [r.lower, r.upper]),
-        skip_summer: request.skipSummer,
-        one_file: request.oneFile,
-        group_data: request.groupData,
+        include_summer: !request.skipSummer,
+        save_all: request.groupData === 'all' || request.groupData === 'both',
+        save_grouped: request.groupData === 'grouped' || request.groupData === 'both',
       }),
       signal: controller.signal,
     });
@@ -266,4 +285,97 @@ export function recordsToCSV(records: Record<string, unknown>[]): string {
   ];
 
   return csvRows.join('\n');
+}
+
+/**
+ * Parse CSV data to enrollment records
+ */
+function parseCSVToRecords(csvData: string): EnrollmentRecord[] {
+  const lines = csvData.trim().split('\n');
+  if (lines.length < 2 || !lines[0]) return [];
+
+  const headers = lines[0].split(',').map(h => h.trim());
+  const records: EnrollmentRecord[] = [];
+
+  // Map CSV headers to expected field names
+  const headerMap: Record<string, string> = {
+    'Term': 'term',
+    'Subject': 'subject',
+    'Course': 'course',
+    'CRN': 'crn',
+    'Section': 'section',
+    'Start Time': 'startTime',
+    'End Time': 'endTime',
+    'Days': 'days',
+    'Building': 'building',
+    'Room': 'room',
+    'Primary Instructor(s)': 'primaryInstructors',
+    'Additional Instructor(s)': 'additionalInstructors',
+    'Enrollment Actual': 'enrollmentActual',
+    'Enrollment Maximum': 'enrollmentMaximum',
+    'Enrollment Seats Available': 'enrollmentSeatsAvailable',
+    'Waitlist Capacity': 'waitlistCapacity',
+    'Waitlist Actual': 'waitlistActual',
+    'Waitlist Seats Available': 'waitlistSeatsAvailable',
+    'Building Code': 'buildingCode',
+    'Room Capacity': 'roomCapacity',
+    'Loss': 'loss'
+  };
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    
+    const values = parseCSVLine(line);
+    if (values.length !== headers.length) continue;
+
+    const record: any = {};
+    headers.forEach((header, index) => {
+      const value = values[index]?.trim();
+      const fieldName = headerMap[header] || header;
+      
+      // Convert numeric fields
+      if (['enrollmentActual', 'enrollmentMaximum', 'enrollmentSeatsAvailable', 
+           'waitlistCapacity', 'waitlistActual', 'waitlistSeatsAvailable', 
+           'roomCapacity', 'loss'].includes(fieldName)) {
+        record[fieldName] = value && value !== '' ? parseFloat(value) : null;
+      } else {
+        record[fieldName] = value || '';
+      }
+    });
+
+    records.push(record as EnrollmentRecord);
+  }
+
+  return records;
+}
+
+/**
+ * Parse a single CSV line handling quoted values
+ */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++; // Skip next quote
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  result.push(current);
+  return result;
 }

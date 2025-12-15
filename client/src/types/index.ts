@@ -5,7 +5,6 @@ export interface EnrollmentRequest {
   subjects: string[];
   courseRanges: CourseRange[];
   skipSummer: boolean;
-  oneFile: boolean;
   groupData: 'all' | 'grouped' | 'both';
 }
 

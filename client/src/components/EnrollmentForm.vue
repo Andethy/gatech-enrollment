@@ -15,7 +15,7 @@ const numTerms = ref(1);
 const subjectInput = ref('');
 const courseRangeInput = ref('');
 const skipSummer = ref(false);
-const oneFile = ref(false);
+
 const groupData = ref<'all' | 'grouped' | 'both'>('all');
 
 // Validation
@@ -75,7 +75,6 @@ function handleSubmit() {
     subjects: parseSubjects(),
     courseRanges: parseCourseRanges(),
     skipSummer: skipSummer.value,
-    oneFile: oneFile.value,
     groupData: groupData.value,
   };
 
@@ -156,9 +155,7 @@ function handleSubmit() {
       <label class="checkbox-label">
         <input type="checkbox" v-model="skipSummer" /> Skip Summer Terms
       </label>
-      <label class="checkbox-label">
-        <input type="checkbox" v-model="oneFile" />Export to One File
-      </label>
+
     </div>
 
     <!-- Submit Button -->
