@@ -2,32 +2,59 @@
 
 A Vue.js web application for retrieving historical course enrollment data from Georgia Tech. This is the frontend component that communicates with an AWS Lambda backend.
 
-## Setup
+## Quick Start
 
-1. **Install dependencies**
-   ```bash
-   cd client
-   npm install
-   ```
+### One-Command Deployment
+```bash
+./deploy.sh
+```
 
-2. **Configure environment**
+This script will:
+- Check prerequisites (Node.js, Python, AWS CLI, CDK)
+- Install all dependencies
+- Build the client application
+- Deploy the AWS infrastructure
+- Process capacity data
+
+### Development Setup
+```bash
+./setup.sh
+```
+
+This script will:
+- Copy environment templates to `.env` files
+- Install all dependencies
+- Prepare the development environment
+
+### Manual Setup
+
+1. **Environment Configuration**
    ```bash
-   cp .env.example .env
+   cp infra/.env.template infra/.env
+   cp client/.env.template client/.env
    ```
    
-   Edit `.env` and set your API Gateway URL:
-   ```
-   VITE_API_URL=https://your-api-gateway-url.amazonaws.com/prod
+   Edit `infra/.env` with your AWS configuration and `client/.env` with your API URL.
+
+2. **Install Dependencies**
+   ```bash
+   # Infrastructure
+   cd infra && npm install
+   
+   # Client
+   cd ../client && npm install
    ```
 
-3. **Run development server**
+3. **Deploy Backend**
    ```bash
+   cd infra
+   cdk deploy
+   ```
+
+4. **Run Development Server**
+   ```bash
+   cd client
    npm run dev
-   ```
-
-4. **Build for production**
-   ```bash
-   npm run build
    ```
 
 ## API Contract
@@ -47,7 +74,6 @@ The frontend expects the backend to implement an **async job-based API** since e
   "subjects": ["CS", "MATH"],
   "ranges": [[1000, 2999], [4000, 4999]],
   "skip_summer": false,
-  "one_file": true,
   "group_data": "all"
 }
 ```
