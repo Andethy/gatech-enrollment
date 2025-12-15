@@ -1,0 +1,29 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Ensure shell scripts use LF
+*.sh text eol=lf
+
+# Ensure Python files use LF
+*.py text eol=lf
+
+# Ensure TypeScript/JavaScript files use LF
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+
+# Ensure Vue files use LF
+*.vue text eol=lf
+
+# Ensure Markdown files use LF
+*.md text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
